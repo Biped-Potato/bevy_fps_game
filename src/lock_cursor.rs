@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 #[derive(Resource)]
 pub struct CursorLockState {
     pub state: bool,
-    pub allow_lock : bool,
+    pub allow_lock: bool,
 }
 pub fn lock_cursor_position(
     mut primary_query: Query<&mut Window, With<PrimaryWindow>>,
@@ -15,17 +15,14 @@ pub fn lock_cursor_position(
         return;
     };
 
-    if key.just_pressed(KeyCode::Tab)
-    {
+    if key.just_pressed(KeyCode::Tab) {
         cursor_lock_state.allow_lock = !cursor_lock_state.allow_lock;
     }
-    if cursor_lock_state.allow_lock 
-    {
+    if cursor_lock_state.allow_lock {
         if btn.just_pressed(MouseButton::Left) {
             cursor_lock_state.state = true;
         }
     }
-    
 
     if key.just_pressed(KeyCode::Escape) {
         cursor_lock_state.state = false;
