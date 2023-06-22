@@ -17,11 +17,12 @@ pub fn update_bloom_settings(
     time: Res<Time>,
 ) {
     let bloom_settings = camera.single_mut();
-    let mut text = text.single_mut();
-    let text = &mut text.sections[0].value;
+    //let mut text = text.single_mut();
+    //let text = &mut text.sections[0].value;
 
     match bloom_settings {
         (entity, Some(mut bloom_settings)) => {
+            /*
             *text = "BloomSettings (Toggle: Space)\n".to_string();
             text.push_str(&format!("(Q/A) Intensity: {}\n", bloom_settings.intensity));
             text.push_str(&format!(
@@ -51,18 +52,15 @@ pub fn update_bloom_settings(
                 "(U/J) Threshold softness: {}\n",
                 bloom_settings.prefilter_settings.threshold_softness
             ));
+            */
+            
 
-
-        
             bloom_settings.prefilter_settings.threshold_softness = bloom_settings
                 .prefilter_settings
                 .threshold_softness
                 .clamp(0.0, 1.0);
         }
-        
-        (entity, None) => {
-        }
-        
-        
+
+        (entity, None) => {}
     }
 }
