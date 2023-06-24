@@ -1,10 +1,10 @@
-use std::time::Duration;
 
-use bevy::{prelude::*, render::render_resource::encase::rts_array::Length};
+
+use bevy::{prelude::*};
 use bevy_rapier3d::prelude::Velocity;
 
 use crate::{
-    fps_camera::FPSCamera, vector_operations::move_towards, AnimationEntityLink, Animations,
+    fps_camera::FPSCamera, vector_operations::move_towards,
 };
 #[derive(Component)]
 pub struct AmmoText
@@ -37,33 +37,32 @@ pub struct GunController {
     
 }
 pub fn translate_gun_position(camera_transform: &Transform) -> Vec3 {
-    let mut position = Vec3::new(0., 0., 0.);
-    position = camera_transform.translation;
+    let mut position = camera_transform.translation;
     position += camera_transform.forward() * 0.35;
     position += camera_transform.right() * 0.4;
     position += camera_transform.down() * 0.3;
     return position;
 }
 pub fn apply_movement_inaccuracy(
-    mut gun_query: Query<(&mut GunController), (Without<FPSCamera>)>,
-    movement_query: Query<(&Velocity),(With<FPSCamera>)>
+    mut gun_query: Query<&mut GunController, Without<FPSCamera>>,
+    movement_query: Query<&Velocity,With<FPSCamera>>
 )
 {
-    for mut velocity in movement_query.iter()
+    for velocity in movement_query.iter()
     {
         if let Ok(mut gun_controller) = gun_query.get_single_mut()
         {
-            gun_controller.movement_inaccuracy = velocity.linvel.length()/0.5;
+            gun_controller.movement_inaccuracy = velocity.linvel.length()/9.;
         }
     }
 }
 pub fn update_ammo_count_text(
-    mut gun_query: Query<(&mut Transform, &mut GunController), (Without<FPSCamera>)>,
+    mut gun_query: Query<(&mut Transform, &mut GunController), Without<FPSCamera>>,
     mut ammo_query: Query<(&AmmoText, &mut Text)>)
 {
-    if let Ok((mut transform, mut gun_controller)) = gun_query.get_single_mut()
+    if let Ok((_transform, gun_controller)) = gun_query.get_single_mut()
     {
-        if let Ok((score_text, mut text)) = ammo_query.get_single_mut() {
+        if let Ok((_score_text, mut text)) = ammo_query.get_single_mut() {
             text.sections[0].value = format!("{} / {}", gun_controller.bullets, gun_controller.magazine_size);
         }
     }
@@ -71,8 +70,8 @@ pub fn update_ammo_count_text(
 }
 pub fn update_gun_control(
     time: Res<Time>,
-    mut gun_query: Query<(&mut Transform, &mut GunController), (Without<FPSCamera>)>,
-    mut camera_query: Query<(&mut Transform, &FPSCamera), (Without<GunController>)>,
+    mut gun_query: Query<(&mut Transform, &mut GunController), Without<FPSCamera>>,
+    mut camera_query: Query<(&mut Transform, &FPSCamera), Without<GunController>>,
 ) {
     if let Ok((camera_transform, camera)) = camera_query.get_single_mut() {
         if let Ok((mut transform, mut gun_controller)) = gun_query.get_single_mut() {
@@ -111,7 +110,7 @@ pub fn update_gun_control(
                 gun_controller.gun_scale,
             );
             if gun_controller.shoot {
-                let mut rng = rand::thread_rng();
+                let _rng = rand::thread_rng();
                 //gun_cotnroller.target_offset = Vec3::new(rng::gen_range())
                 gun_controller.shoot = false;
             }

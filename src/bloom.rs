@@ -1,27 +1,23 @@
 use bevy::{
     core_pipeline::{
-        bloom::{BloomCompositeMode, BloomSettings},
-        tonemapping::Tonemapping,
+        bloom::{BloomSettings},
     },
     prelude::*,
 };
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-};
+
 pub fn update_bloom_settings(
     mut camera: Query<(Entity, Option<&mut BloomSettings>), With<Camera>>,
-    mut text: Query<&mut Text>,
-    mut commands: Commands,
-    keycode: Res<Input<KeyCode>>,
-    time: Res<Time>,
+    _text: Query<&mut Text>,
+    _commands: Commands,
+    _keycode: Res<Input<KeyCode>>,
+    _time: Res<Time>,
 ) {
     let bloom_settings = camera.single_mut();
     //let mut text = text.single_mut();
     //let text = &mut text.sections[0].value;
 
     match bloom_settings {
-        (entity, Some(mut bloom_settings)) => {
+        (_entity, Some(mut bloom_settings)) => {
             /*
             *text = "BloomSettings (Toggle: Space)\n".to_string();
             text.push_str(&format!("(Q/A) Intensity: {}\n", bloom_settings.intensity));
@@ -61,6 +57,6 @@ pub fn update_bloom_settings(
                 .clamp(0.0, 1.0);
         }
 
-        (entity, None) => {}
+        (_entity, None) => {}
     }
 }
