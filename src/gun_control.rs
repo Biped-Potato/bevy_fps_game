@@ -99,11 +99,6 @@ pub fn update_gun_control(
                 gun_controller.gun_scale,
                 gun_controller.gun_scale,
             );
-            if gun_controller.shoot {
-                let _rng = rand::thread_rng();
-                //gun_cotnroller.target_offset = Vec3::new(rng::gen_range())
-                gun_controller.shoot = false;
-            }
         }
     }
 }
