@@ -1,5 +1,5 @@
 use crate::{fps_movement::FPSMovement, AnimationEntityLink, EnemyAnimations};
-use bevy::{prelude::*, render::render_resource::encase::rts_array::Length};
+use bevy::{prelude::*};
 use bevy_rapier3d::prelude::*;
 
 #[derive(Component)]
@@ -18,14 +18,14 @@ pub struct LegCollider {}
 pub fn rotate_to_player(
     enemy_animations: Res<EnemyAnimations>,
     mut animation_player_query: Query<&mut AnimationPlayer>,
-    mut player_query: Query<(&Transform, &FPSMovement)>,
+    player_query: Query<(&Transform, &FPSMovement)>,
     mut commands: Commands,
     mut enemy_query: Query<(&mut Enemy, &Children, &AnimationEntityLink)>,
-    mut get_child_query: Query<(&Children)>,
-    mut name_query: Query<(&Name)>,
-    mut transform_query: Query<(&mut Transform), Without<FPSMovement>>,
+    get_child_query: Query<&Children>,
+    name_query: Query<&Name>,
+    _transform_query: Query<&mut Transform, Without<FPSMovement>>,
 ) {
-    if let Ok((player_transform, movement)) = player_query.get_single() {
+    if let Ok((_player_transform, _movement)) = player_query.get_single() {
         for (mut enemy, child, animation_entity) in enemy_query.iter_mut() {
             if let Ok(mut player) = animation_player_query.get_mut(animation_entity.0) {
                 player.play(enemy_animations.0[0].clone_weak());
