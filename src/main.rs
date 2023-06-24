@@ -6,6 +6,7 @@ use bevy::{
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
+use fps_shooting::update_bullet_params;
 
 pub mod bloom;
 pub mod bullet_tracer;
@@ -29,27 +30,17 @@ fn main() {
         .add_system(fps_camera::move_camera.after(fps_movement::player_movement))
         .add_system(gun_control::update_gun_control.after(fps_camera::move_camera))
         .add_system(bloom::update_bloom_settings)
-        .add_system(fps_shooting::update_shots)
-        .add_system(fps_shooting::play_gun_animations)
-        .add_system(lock_cursor::lock_cursor_position)
+        .add_system(fps_shooting::update_shots.after(fps_shooting::update_bullet_params))
+        .add_system(fps_shooting::update_bullet_params.before(fps_shooting::update_shots))
+        .add_system(fps_shooting::play_gun_animations.after(fps_shooting::update_shots))
         .add_system(fps_shooting::update_targets)
+        .add_system(lock_cursor::lock_cursor_position)
         .add_system(bullet_tracer::update_tracers)
         .add_system(score_ui::update_score)
         .add_system(link_animations)
         .add_system(gun_control::update_ammo_count_text)
         .add_system(gun_control::apply_movement_inaccuracy.before(fps_shooting::update_shots))
         .add_system(enemy::rotate_to_player.in_base_set(CoreSet::PostUpdate))
-        /*
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-              position : WindowPosition::Centered((MonitorSelection::Primary)),
-              resolution: WindowResolution::new(1920.,1080.),
-              mode:WindowMode::BorderlessFullscreen,
-              ..default()
-            }),
-            ..default()
-          }))
-        */
         .add_plugins(
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
@@ -331,7 +322,7 @@ pub fn setup(
                 },
                 GravityScale(1.),
                 fps_movement::FPSMovement {
-                    speed: 1.8,
+                    speed: 2.2,
                     acceleration: 400.,
                 },
             ));
@@ -410,7 +401,7 @@ pub fn setup(
     ));
 
     let mut rng = rand::thread_rng();
-
+    /*
     let mut pos_vec = Vec::new();
     for i in 0..5 {
         pos_vec.push(fps_shooting::generate_target_position(&mut rng));
@@ -460,4 +451,7 @@ pub fn setup(
                 ));
             });
     }
+    
+     */
+    
 }
