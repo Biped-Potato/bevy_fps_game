@@ -20,7 +20,7 @@ pub struct ShootableTarget {
     pub max_health: f32,
 }
 pub fn play_gun_animations(
-    buttons: Res<Input<MouseButton>>,
+    _buttons: Res<Input<MouseButton>>,
     mut player_query: Query<&mut AnimationPlayer>,
     animations: Res<Animations>,
     mut gun_query: Query<
@@ -28,7 +28,7 @@ pub fn play_gun_animations(
         (Without<FPSCamera>, Without<ShootableTarget>),
     >,
 ) {
-    for (mut gun_controller, _gun_transform, animation_entity) in gun_query.iter_mut() {
+    for (gun_controller, _gun_transform, animation_entity) in gun_query.iter_mut() {
         //println!("{}",gun_controller.shoot);
         if let Ok(mut player) = player_query.get_mut(animation_entity.0) {
             if gun_controller.reloading_timer >= 0. {
@@ -55,7 +55,7 @@ pub fn update_bullet_params(
     time: Res<Time>,
     buttons: Res<Input<MouseButton>>,
 ) {
-    for (mut gun_controller, mut gun_transform, _animation_entity) in gun_query.iter_mut() {
+    for (mut gun_controller, _gun_transform, _animation_entity) in gun_query.iter_mut() {
         if gun_controller.time_since_last_shot >= gun_controller.recoil_reset_time {
             gun_controller.spray_index = 0;
         }
@@ -87,7 +87,7 @@ pub fn update_shots(
         (&mut GunController, &mut Transform, &AnimationEntityLink),
         (Without<FPSCamera>, Without<ShootableTarget>),
     >,
-    mut score_query: Query<&mut ScoreText, With<Text>>,
+    _score_query: Query<&mut ScoreText, With<Text>>,
     mut camera_query: Query<(
         &Camera,
         &GlobalTransform,
@@ -248,7 +248,7 @@ pub fn update_shots(
                             },
                         ));
                         let mut spawn_bullet_hole = true;
-                        if let Ok((mut head)) = head_query.get_mut(entity)
+                        if let Ok(head) = head_query.get_mut(entity)
                         {
                             if let Ok(mut enemy) = enemy_query.get_mut(head.enemy_reference)
                             {
@@ -256,19 +256,19 @@ pub fn update_shots(
                             }
                             spawn_bullet_hole = false;
                         }
-                        if let Ok((mut leg)) = leg_query.get_mut(entity)
+                        if let Ok(leg) = leg_query.get_mut(entity)
                         {
                             if let Ok(mut enemy) = enemy_query.get_mut(leg.enemy_reference)
                             {
-                                enemy.health-= 20.;
+                                enemy.health-= 10.;
                             }
                             spawn_bullet_hole = false;
                         }
-                        if let Ok((mut body)) = body_query.get_mut(entity)
+                        if let Ok(body) = body_query.get_mut(entity)
                         {
                             if let Ok(mut enemy) = enemy_query.get_mut(body.enemy_reference)
                             {
-                                enemy.health-= 10.;
+                                enemy.health-= 20.;
                             }
                             spawn_bullet_hole = false;
                         }

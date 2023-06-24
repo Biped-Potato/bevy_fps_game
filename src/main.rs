@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
-use fps_shooting::update_bullet_params;
+
 
 pub mod bloom;
 pub mod bullet_tracer;
@@ -242,8 +242,8 @@ pub struct EnemyAnimations(Vec<Handle<AnimationClip>>);
 pub fn setup(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(Animations(vec![
         asset_server.load("gun.glb#Animation0"),
@@ -402,7 +402,7 @@ pub fn setup(
         NoFrustumCulling,
     ));
 
-    let mut rng = rand::thread_rng();
+    let _rng = rand::thread_rng();
     /*
     let mut pos_vec = Vec::new();
     for i in 0..5 {
