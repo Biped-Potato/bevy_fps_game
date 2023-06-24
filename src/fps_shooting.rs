@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
 
-use bevy::core_pipeline::bloom::BloomSettings;
+
+
 use bevy::pbr::NotShadowCaster;
 use bevy::prelude::*;
 use bevy::render::render_resource::Face;
@@ -8,10 +8,10 @@ use bevy::window::PrimaryWindow;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
-use crate::bullet_tracer::{self, BulletTracer};
+use crate::bullet_tracer::{BulletTracer};
 use crate::fps_camera::FPSCamera;
-use crate::gun_control::{self, translate_gun_position, GunController};
-use crate::rotation_operations::{from_to_rotation, quaternion_look_rotation};
+use crate::gun_control::{translate_gun_position, GunController};
+use crate::rotation_operations::{quaternion_look_rotation};
 use crate::score_ui::ScoreText;
 use crate::vector_operations::move_towards;
 use crate::{AnimationEntityLink, Animations};
@@ -37,7 +37,7 @@ pub fn update_shots(
         Entity,
         &mut FPSCamera,
     )>,
-    mut target_query: Query<(&mut ShootableTarget, &mut Transform, Entity), Without<Camera>>,
+    mut target_query: Query<(&mut ShootableTarget, &mut Transform), Without<Camera>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut commands: Commands,
@@ -47,7 +47,7 @@ pub fn update_shots(
     windows: Query<&Window, With<PrimaryWindow>>,
     rapier_context: Res<RapierContext>,
 ) {
-    for ((mut gun_controller, mut gun_transform, animation_entity)) in gun_query.iter_mut() {
+    for (mut gun_controller, mut gun_transform, animation_entity) in gun_query.iter_mut() {
         if gun_controller.time_since_last_shot >= gun_controller.recoil_reset_time {
             gun_controller.spray_index = 0;
         }
@@ -81,7 +81,7 @@ pub fn update_shots(
                         for (
                             camera,
                             camera_transform,
-                            mut camera_transform_non_global,
+                            camera_transform_non_global,
                             entity,
                             mut fps_camera,
                         ) in camera_query.iter_mut()
@@ -105,18 +105,19 @@ pub fn update_shots(
 
                             let mut rng = rand::thread_rng();
 
-                            let mut ray_direction = Vec3::ZERO;
+                            let ray_direction;
+                            let spray_rand_movement_added = gun_controller.spray_rand+gun_controller.movement_inaccuracy;
                             if gun_controller.spray_index > 3 {
                                 ray_direction = (camera_transform_non_corrupted.forward()
                                     + (camera_transform_non_corrupted.up()
                                         * (rng.gen_range(
-                                            -gun_controller.spray_rand..gun_controller.spray_rand,
+                                            -spray_rand_movement_added..spray_rand_movement_added,
                                         ) + gun_controller.spray_pattern
                                             [gun_controller.spray_index]
                                             .y))
                                     + (camera_transform_non_corrupted.right()
                                         * (rng.gen_range(
-                                            -gun_controller.spray_rand..gun_controller.spray_rand,
+                                            -spray_rand_movement_added..spray_rand_movement_added,
                                         ) + gun_controller.spray_pattern
                                             [gun_controller.spray_index]
                                             .x)))
@@ -125,15 +126,15 @@ pub fn update_shots(
                                 ray_direction = (camera_transform_non_corrupted.forward()
                                     + (camera_transform_non_corrupted.up()
                                         * (rng.gen_range(
-                                            -gun_controller.spray_rand / 5.0
-                                                ..gun_controller.spray_rand / 5.0,
+                                            -gun_controller.spray_rand / 3.0
+                                                ..gun_controller.spray_rand / 3.0,
                                         ) + gun_controller.spray_pattern
                                             [gun_controller.spray_index]
                                             .y))
                                     + (camera_transform_non_corrupted.right()
                                         * (rng.gen_range(
-                                            -gun_controller.spray_rand / 5.0
-                                                ..gun_controller.spray_rand / 5.0,
+                                            -spray_rand_movement_added / 3.0
+                                                ..spray_rand_movement_added / 3.0,
                                         ) + gun_controller.spray_pattern
                                             [gun_controller.spray_index]
                                             .x)))
@@ -190,7 +191,7 @@ pub fn update_shots(
                                 gun_controller.gun_scale,
                             );
                             if gun_controller.shoot {
-                                let mut rng = rand::thread_rng();
+                                let _rng = rand::thread_rng();
                                 //gun_cotnroller.target_offset = Vec3::new(rng::gen_range())
                                 gun_controller.shoot = false;
                             }
@@ -223,17 +224,11 @@ pub fn update_shots(
                                     },
                                 ));
                                 let mut hit_target = false;
-                                for (mut target, mut transform, target_entity) in
-                                    target_query.iter_mut()
+                                if let Ok((mut target, _transform)) = target_query.get_mut(entity)
                                 {
-                                    if target_entity.index() == entity.index() {
-                                        score_diff += 200;
-                                        target.health -= 1.;
-                                        hit_target = true;
-
-                                        //println!("time of impact : {} distance between player and target : {}",_toi, Vec3::distance(transform.translation,camera_transform_non_global.translation));
-                                        break;
-                                    }
+                                    score_diff += 200;
+                                    target.health -= 1.;
+                                    hit_target = true;
                                 }
                                 if hit_target == false {
                                     let texture_handle = asset_server.load("bullet_hole.png");
@@ -322,16 +317,16 @@ pub fn generate_target_position(rng: &mut rand::rngs::ThreadRng) -> Vec3 {
     );
 }
 pub fn update_targets(
-    mut commands: Commands,
+    _commands: Commands,
     mut target_query: Query<(&mut ShootableTarget, &mut Transform)>,
 ) {
     let mut pos_vec = Vec::new();
-    for (target, transform) in target_query.iter() {
+    for (_target, transform) in target_query.iter() {
         pos_vec.push(transform.translation);
     }
     let mut i = 0;
     for (mut target, mut transform) in target_query.iter_mut() {
-        let mut original_position = pos_vec[i];
+        let original_position;
         if target.health <= 0. {
             let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
             original_position = pos_vec[i];

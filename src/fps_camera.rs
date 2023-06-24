@@ -1,4 +1,4 @@
-use bevy::{core::Zeroable, input::mouse::MouseMotion, prelude::*};
+use bevy::{input::mouse::MouseMotion, prelude::*};
 
 use crate::{lock_cursor::CursorLockState, vector_operations::move_towards};
 

@@ -21,12 +21,11 @@ pub fn player_movement(
     )>,
     key: Res<Input<KeyCode>>,
 ) {
-    for (transform, mut damping, mut camera, mut movement, mut velocity) in
+    for (transform, mut damping, camera, movement, mut velocity) in
         movement_query.iter_mut()
     {
         
-        println!("{}",velocity.linvel.length());
-
+        
         let mut direction = Vec2::new(0., 0.);
 
         let mut air_modifier = 1.0;
@@ -46,7 +45,7 @@ pub fn player_movement(
             QueryFilter::only_fixed(),
         );
 
-        if let Some((entity, _toi)) = hit {
+        if let Some((_entity, _toi)) = hit {
             grounded = true;
         }
 
@@ -87,7 +86,7 @@ pub fn player_movement(
             direction.y * movement.acceleration * time.delta_seconds() * air_modifier;
 
         let net_velocity = Vec2::new(velocity.linvel.x, velocity.linvel.z).length();
-        let mut multiplier;
+        let multiplier;
         if net_velocity > movement.speed {
             multiplier = movement.speed / net_velocity;
         } else {

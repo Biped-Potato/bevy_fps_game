@@ -1,16 +1,13 @@
 use bevy::{
-    core::Zeroable,
     core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
-    input::common_conditions::input_toggle_active,
     prelude::*,
-    reflect::erased_serde::__private::serde::__private::de,
-    window::{PrimaryWindow, WindowMode, WindowResolution},
+    window::{PrimaryWindow, WindowMode, WindowResolution}, render::view::NoFrustumCulling, animation::animation_player,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
-use fps_camera::FPSCamera;
-use gun_control::GunController;
-use rand::Rng;
+
+
+
 
 pub mod bloom;
 pub mod bullet_tracer;
@@ -22,6 +19,7 @@ pub mod lock_cursor;
 pub mod rotation_operations;
 pub mod score_ui;
 pub mod vector_operations;
+pub mod enemy;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.5, 0.8, 0.9)))
@@ -40,11 +38,14 @@ fn main() {
         .add_system(score_ui::update_score)
         .add_system(link_animations)
         .add_system(gun_control::update_ammo_count_text)
+        .add_system(gun_control::apply_movement_inaccuracy.before(fps_shooting::update_shots))
+        .add_system(enemy::rotate_to_player)
+        
         /*
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
               position : WindowPosition::Centered((MonitorSelection::Primary)),
-              resolution: WindowResolution::new(1980.,1080.),
+              resolution: WindowResolution::new(1920.,1080.),
               mode:WindowMode::BorderlessFullscreen,
               ..default()
             }),
@@ -56,9 +57,9 @@ fn main() {
                 .set(ImagePlugin::default_nearest())
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        position: WindowPosition::Centered((MonitorSelection::Primary)),
-                        resolution: WindowResolution::new(1280., 720.),
-                        mode: WindowMode::Windowed,
+                        position: WindowPosition::Centered(MonitorSelection::Primary),
+                        resolution: WindowResolution::new(1920., 1080.),
+                        mode: WindowMode::BorderlessFullscreen,
                         ..default()
                     }),
                     ..default()
@@ -248,6 +249,9 @@ pub fn setup_ui(
 }
 #[derive(Resource)]
 pub struct Animations(Vec<Handle<AnimationClip>>);
+
+#[derive(Resource)]
+pub struct EnemyAnimations(Vec<Handle<AnimationClip>>);
 pub fn setup(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
@@ -259,7 +263,10 @@ pub fn setup(
         asset_server.load("gun.glb#Animation1"),
         asset_server.load("gun.glb#Animation2"),
     ]));
-
+    
+    commands.insert_resource(EnemyAnimations(vec![
+        asset_server.load("person.glb#Animation0"),
+    ]));
     WindowResolution::new(1980., 1080.);
     // ambient light
     commands.insert_resource(AmbientLight {
@@ -387,6 +394,18 @@ pub fn setup(
             offset: Vec3::new(0., 0., 0.),
         },
     ));
+    let mut person_transform = Transform::from_xyz(0.,0.,0.);
+    person_transform.scale = Vec3::new(2.5,2.5,2.5);
+    commands.spawn((
+        SceneBundle {
+            transform: person_transform,
+            scene: asset_server.load("person.glb#Scene0"),
+            ..default()
+        },
+        enemy::Enemy{shoot_timer : 3., shoot_cooldown : 3.,parented : false},
+        NoFrustumCulling
+    ));
+
     let mut rng = rand::thread_rng();
 
     let mut pos_vec = Vec::new();
