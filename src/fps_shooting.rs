@@ -83,19 +83,9 @@ pub fn update_bullet_params(
     }
 }
 pub fn update_shots(
-    _player_query: Query<&mut AnimationPlayer>,
-    _animations: Res<Animations>,
     mut gun_query: Query<
         (&mut GunController, &mut Transform, &AnimationEntityLink),
         (Without<FPSCamera>, Without<ShootableTarget>),
-    >,
-    _transform_query: Query<
-        &Transform,
-        (
-            Without<GunController>,
-            Without<ShootableTarget>,
-            Without<FPSCamera>,
-        ),
     >,
     mut score_query: Query<&mut ScoreText, With<Text>>,
     mut camera_query: Query<(
@@ -120,7 +110,6 @@ pub fn update_shots(
     for (mut gun_controller, mut gun_transform, _animation_entity) in gun_query.iter_mut() {
         if gun_controller.reloading_timer < 0. {
             if gun_controller.shoot == true {
-                let mut score_diff = -100;
 
                 let window = windows.single();
 
@@ -261,19 +250,26 @@ pub fn update_shots(
                         let mut spawn_bullet_hole = true;
                         if let Ok((mut head)) = head_query.get_mut(entity)
                         {
-                            if let Ok(enemy) = enemy_query.get(head.enemy_reference)
+                            if let Ok(mut enemy) = enemy_query.get_mut(head.enemy_reference)
                             {
-                                
+                                enemy.health-= 100.;
                             }
                             spawn_bullet_hole = false;
                         }
                         if let Ok((mut leg)) = leg_query.get_mut(entity)
                         {
+                            if let Ok(mut enemy) = enemy_query.get_mut(leg.enemy_reference)
+                            {
+                                enemy.health-= 20.;
+                            }
                             spawn_bullet_hole = false;
                         }
                         if let Ok((mut body)) = body_query.get_mut(entity)
                         {
-                            
+                            if let Ok(mut enemy) = enemy_query.get_mut(body.enemy_reference)
+                            {
+                                enemy.health-= 10.;
+                            }
                             spawn_bullet_hole = false;
                         }
                         if spawn_bullet_hole == true {
@@ -338,9 +334,6 @@ pub fn update_shots(
                                 .id();
                         }
                     }
-                }
-                if let Ok(mut score_text) = score_query.get_single_mut() {
-                    score_text.score += score_diff;
                 }
             }
         }

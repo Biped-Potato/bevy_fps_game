@@ -7,6 +7,7 @@ pub struct Enemy {
     pub added_colliders: bool,
     pub shoot_timer: f32,
     pub shoot_cooldown: f32,
+    pub health : f32,
 }
 #[derive(Component)]
 pub struct HeadCollider {
@@ -34,8 +35,14 @@ pub fn rotate_to_player(
     if let Ok((_player_transform, _movement)) = player_query.get_single() {
         for (mut enemy, entity, child, animation_entity) in enemy_query.iter_mut() {
             if let Ok(mut player) = animation_player_query.get_mut(animation_entity.0) {
-                player.play(enemy_animations.0[0].clone_weak());
-                player.pause();
+                if enemy.health <=0.
+                {
+                    player.play(enemy_animations.0[1].clone_weak());
+                }
+                else {
+                    player.play(enemy_animations.0[0].clone_weak());
+                }
+                
             }
             if enemy.added_colliders == false {
                 if let Ok(child_of_child) = get_child_query.get(child[0]) {

@@ -252,7 +252,8 @@ pub fn setup(
     ]));
 
     commands.insert_resource(EnemyAnimations(vec![
-        asset_server.load("person.glb#Animation0")
+        asset_server.load("person.glb#Animation0"),
+        asset_server.load("person.glb#Animation1")
     ]));
     WindowResolution::new(1980., 1080.);
     // ambient light
@@ -393,6 +394,7 @@ pub fn setup(
             ..default()
         },
         enemy::Enemy {
+            health:100.,
             shoot_timer: 3.,
             shoot_cooldown: 3.,
             added_colliders: false,
