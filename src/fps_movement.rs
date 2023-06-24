@@ -21,11 +21,7 @@ pub fn player_movement(
     )>,
     key: Res<Input<KeyCode>>,
 ) {
-    for (transform, mut damping, camera, movement, mut velocity) in
-        movement_query.iter_mut()
-    {
-        
-        
+    for (transform, mut damping, camera, movement, mut velocity) in movement_query.iter_mut() {
         let mut direction = Vec2::new(0., 0.);
 
         let mut air_modifier = 1.0;

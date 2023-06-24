@@ -1,6 +1,3 @@
-
-
-
 use bevy::pbr::NotShadowCaster;
 use bevy::prelude::*;
 use bevy::render::render_resource::Face;
@@ -8,10 +5,10 @@ use bevy::window::PrimaryWindow;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
-use crate::bullet_tracer::{BulletTracer};
+use crate::bullet_tracer::BulletTracer;
 use crate::fps_camera::FPSCamera;
 use crate::gun_control::{translate_gun_position, GunController};
-use crate::rotation_operations::{quaternion_look_rotation};
+use crate::rotation_operations::quaternion_look_rotation;
 use crate::score_ui::ScoreText;
 use crate::vector_operations::move_towards;
 use crate::{AnimationEntityLink, Animations};
@@ -28,6 +25,14 @@ pub fn update_shots(
     mut gun_query: Query<
         (&mut GunController, &mut Transform, &AnimationEntityLink),
         (Without<FPSCamera>, Without<ShootableTarget>),
+    >,
+    transform_query: Query<
+        (&Transform),
+        (
+            Without<GunController>,
+            Without<ShootableTarget>,
+            Without<FPSCamera>,
+        ),
     >,
     mut score_query: Query<&mut ScoreText, With<Text>>,
     mut camera_query: Query<(
@@ -55,8 +60,7 @@ pub fn update_shots(
         gun_controller.time_since_last_shot += time.delta_seconds();
 
         if let Ok(mut player) = player_query.get_mut(animation_entity.0) {
-            
-            gun_controller.reloading_timer-=time.delta_seconds();
+            gun_controller.reloading_timer -= time.delta_seconds();
             if gun_controller.reloading_timer >= 0. {
                 player.play(animations.0[1].clone_weak());
             } else {
@@ -67,9 +71,9 @@ pub fn update_shots(
                     if gun_controller.timer <= 0. {
                         player.play(animations.0[0].clone_weak());
                         player.play(animations.0[2].clone_weak());
-                        gun_controller.bullets -=1;
-                        if gun_controller.bullets <=0 {
-                            gun_controller.bullets  = gun_controller.magazine_size;
+                        gun_controller.bullets -= 1;
+                        if gun_controller.bullets <= 0 {
+                            gun_controller.bullets = gun_controller.magazine_size;
                             gun_controller.reloading_timer = gun_controller.reloading_time;
                             gun_controller.spray_index = 0;
                         }
@@ -106,7 +110,8 @@ pub fn update_shots(
                             let mut rng = rand::thread_rng();
 
                             let ray_direction;
-                            let spray_rand_movement_added = gun_controller.spray_rand+gun_controller.movement_inaccuracy;
+                            let spray_rand_movement_added =
+                                gun_controller.spray_rand + gun_controller.movement_inaccuracy;
                             if gun_controller.spray_index > 3 {
                                 ray_direction = (camera_transform_non_corrupted.forward()
                                     + (camera_transform_non_corrupted.up()
@@ -224,8 +229,7 @@ pub fn update_shots(
                                     },
                                 ));
                                 let mut hit_target = false;
-                                if let Ok((mut target, _transform)) = target_query.get_mut(entity)
-                                {
+                                if let Ok((mut target, _transform)) = target_query.get_mut(entity) {
                                     score_diff += 200;
                                     target.health -= 1.;
                                     hit_target = true;
@@ -272,28 +276,43 @@ pub fn update_shots(
                                         hole_position.y,
                                         hole_position.z,
                                     );
+                                    /*
+
+                                    hole_transform.translation-=parent_transform.translation;
+                                    hole_transform.translation/=parent_transform.scale;
+                                    hole_transform.scale = Vec3::new(1.,1.,1.);
+                                    hole_transform.scale /= Vec3::new(parent_transform.scale.x,parent_transform.scale.z,parent_transform.scale.y);
+                                    println!("{} {}",parent_transform.scale,hole_transform.scale);
+                                     */
+
                                     hole_transform.rotation =
                                         quaternion_look_rotation(offseted_normal, Vec3::Y);
-
+                                    //hole_transform.translation = Vec3::ZERO;
                                     //hole_rotation.rotate_x(PI);
                                     //println!("{} {}",offseted_normal,hole_transform.rotation);
                                     // textured quad - normal
-                                    commands
+
+                                    let hole_entity_front = commands
                                         .spawn(PbrBundle {
                                             mesh: quad_handle.clone(),
                                             material: material_handle_front,
                                             transform: hole_transform,
                                             ..default()
                                         })
-                                        .insert(NotShadowCaster);
-                                    commands
+                                        .insert(NotShadowCaster)
+                                        .id();
+                                    let hole_entity_back = commands
                                         .spawn(PbrBundle {
                                             mesh: quad_handle.clone(),
                                             material: material_handle_back,
                                             transform: hole_transform,
                                             ..default()
                                         })
-                                        .insert(NotShadowCaster);
+                                        .insert(NotShadowCaster)
+                                        .id();
+
+                                    //commands.entity(entity).push_children(&[hole_entity_front]);
+                                    //commands.entity(entity).push_children(&[hole_entity_back]);
                                 }
                             }
                         }

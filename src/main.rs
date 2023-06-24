@@ -1,16 +1,16 @@
 use bevy::{
+    animation::animation_player,
     core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
     prelude::*,
-    window::{PrimaryWindow, WindowMode, WindowResolution}, render::view::NoFrustumCulling, animation::animation_player,
+    render::view::NoFrustumCulling,
+    window::{PrimaryWindow, WindowMode, WindowResolution},
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 
-
-
-
 pub mod bloom;
 pub mod bullet_tracer;
+pub mod enemy;
 pub mod fps_camera;
 pub mod fps_movement;
 pub mod fps_shooting;
@@ -19,7 +19,6 @@ pub mod lock_cursor;
 pub mod rotation_operations;
 pub mod score_ui;
 pub mod vector_operations;
-pub mod enemy;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.5, 0.8, 0.9)))
@@ -39,8 +38,7 @@ fn main() {
         .add_system(link_animations)
         .add_system(gun_control::update_ammo_count_text)
         .add_system(gun_control::apply_movement_inaccuracy.before(fps_shooting::update_shots))
-        .add_system(enemy::rotate_to_player)
-        
+        .add_system(enemy::rotate_to_player.in_base_set(CoreSet::PostUpdate))
         /*
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -58,15 +56,15 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         position: WindowPosition::Centered(MonitorSelection::Primary),
-                        resolution: WindowResolution::new(1920., 1080.),
-                        mode: WindowMode::BorderlessFullscreen,
+                        resolution: WindowResolution::new(1280., 720.),
+                        mode: WindowMode::Windowed,
                         ..default()
                     }),
                     ..default()
                 }),
         )
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        //.add_plugin(RapierDebugRenderPlugin::default())
+        .add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(WorldInspectorPlugin::default())
         .add_startup_system(setup)
         .add_startup_system(setup_ui)
@@ -217,8 +215,8 @@ pub fn setup_ui(
                         position: UiRect::new(
                             Val::Percent(0.),
                             Val::Percent(100.),
-                            Val::Px(primary.height()- 30.),
-                            Val::Px(primary.height() +0.),
+                            Val::Px(primary.height() - 30.),
+                            Val::Px(primary.height() + 0.),
                         ),
                         ..default()
                     },
@@ -227,12 +225,10 @@ pub fn setup_ui(
                 })
                 .with_children(|parent| {
                     parent.spawn((
-                        gun_control::AmmoText{},
+                        gun_control::AmmoText {},
                         TextBundle::from_section(
-                            
                             "25/100",
                             TextStyle {
-                                
                                 font: asset_server.load("font.ttf"),
                                 font_size: 30.0,
                                 color: Color::WHITE,
@@ -263,9 +259,9 @@ pub fn setup(
         asset_server.load("gun.glb#Animation1"),
         asset_server.load("gun.glb#Animation2"),
     ]));
-    
+
     commands.insert_resource(EnemyAnimations(vec![
-        asset_server.load("person.glb#Animation0"),
+        asset_server.load("person.glb#Animation0")
     ]));
     WindowResolution::new(1980., 1080.);
     // ambient light
@@ -308,7 +304,10 @@ pub fn setup(
 
                     ..default()
                 },
-                BloomSettings { intensity : 0.2,..default() },
+                BloomSettings {
+                    intensity: 0.2,
+                    ..default()
+                },
                 RigidBody::Dynamic,
                 LockedAxes::ROTATION_LOCKED_X
                     | LockedAxes::ROTATION_LOCKED_Y
@@ -371,7 +370,7 @@ pub fn setup(
             ..default()
         },
         gun_control::GunController {
-            movement_inaccuracy : 0.,
+            movement_inaccuracy: 0.,
             reloading_time: 1.0,
             reloading_timer: 0.,
             spray_rand: 0.01,
@@ -380,7 +379,7 @@ pub fn setup(
             current_camera_transform: Transform::from_xyz(0.0, 0.0, 4.0),
             smooth_scale: 0.6,
             magazine_size: 25,
-            bullets : 25,
+            bullets: 25,
             spray_index: 0,
             recoil_reset_time: 0.32,
             time_since_last_shot: 0.,
@@ -394,16 +393,20 @@ pub fn setup(
             offset: Vec3::new(0., 0., 0.),
         },
     ));
-    let mut person_transform = Transform::from_xyz(0.,0.,0.);
-    person_transform.scale = Vec3::new(2.5,2.5,2.5);
+    let mut person_transform = Transform::from_xyz(0., 0., 0.);
+    person_transform.scale = Vec3::new(2.5, 2.5, 2.5);
     commands.spawn((
         SceneBundle {
             transform: person_transform,
             scene: asset_server.load("person.glb#Scene0"),
             ..default()
         },
-        enemy::Enemy{shoot_timer : 3., shoot_cooldown : 3.,parented : false},
-        NoFrustumCulling
+        enemy::Enemy {
+            shoot_timer: 3.,
+            shoot_cooldown: 3.,
+            added_colliders: false,
+        },
+        NoFrustumCulling,
     ));
 
     let mut rng = rand::thread_rng();

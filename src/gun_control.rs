@@ -1,16 +1,9 @@
-
-
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_rapier3d::prelude::Velocity;
 
-use crate::{
-    fps_camera::FPSCamera, vector_operations::move_towards,
-};
+use crate::{fps_camera::FPSCamera, vector_operations::move_towards};
 #[derive(Component)]
-pub struct AmmoText
-{
-    
-}
+pub struct AmmoText {}
 #[derive(Component)]
 pub struct GunController {
     pub magazine_size: usize,
@@ -32,9 +25,8 @@ pub struct GunController {
     pub spray_rand: f32,
     pub reloading_timer: f32,
     pub reloading_time: f32,
-    pub bullets : usize,
-    pub movement_inaccuracy : f32,
-    
+    pub bullets: usize,
+    pub movement_inaccuracy: f32,
 }
 pub fn translate_gun_position(camera_transform: &Transform) -> Vec3 {
     let mut position = camera_transform.translation;
@@ -45,28 +37,26 @@ pub fn translate_gun_position(camera_transform: &Transform) -> Vec3 {
 }
 pub fn apply_movement_inaccuracy(
     mut gun_query: Query<&mut GunController, Without<FPSCamera>>,
-    movement_query: Query<&Velocity,With<FPSCamera>>
-)
-{
-    for velocity in movement_query.iter()
-    {
-        if let Ok(mut gun_controller) = gun_query.get_single_mut()
-        {
-            gun_controller.movement_inaccuracy = velocity.linvel.length()/9.;
+    movement_query: Query<&Velocity, With<FPSCamera>>,
+) {
+    for velocity in movement_query.iter() {
+        if let Ok(mut gun_controller) = gun_query.get_single_mut() {
+            gun_controller.movement_inaccuracy = velocity.linvel.length() / 9.;
         }
     }
 }
 pub fn update_ammo_count_text(
     mut gun_query: Query<(&mut Transform, &mut GunController), Without<FPSCamera>>,
-    mut ammo_query: Query<(&AmmoText, &mut Text)>)
-{
-    if let Ok((_transform, gun_controller)) = gun_query.get_single_mut()
-    {
+    mut ammo_query: Query<(&AmmoText, &mut Text)>,
+) {
+    if let Ok((_transform, gun_controller)) = gun_query.get_single_mut() {
         if let Ok((_score_text, mut text)) = ammo_query.get_single_mut() {
-            text.sections[0].value = format!("{} / {}", gun_controller.bullets, gun_controller.magazine_size);
+            text.sections[0].value = format!(
+                "{} / {}",
+                gun_controller.bullets, gun_controller.magazine_size
+            );
         }
     }
-    
 }
 pub fn update_gun_control(
     time: Res<Time>,

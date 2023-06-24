@@ -1,9 +1,4 @@
-use bevy::{
-    core_pipeline::{
-        bloom::{BloomSettings},
-    },
-    prelude::*,
-};
+use bevy::{core_pipeline::bloom::BloomSettings, prelude::*};
 
 pub fn update_bloom_settings(
     mut camera: Query<(Entity, Option<&mut BloomSettings>), With<Camera>>,
@@ -49,7 +44,6 @@ pub fn update_bloom_settings(
                 bloom_settings.prefilter_settings.threshold_softness
             ));
             */
-            
 
             bloom_settings.prefilter_settings.threshold_softness = bloom_settings
                 .prefilter_settings
