@@ -1,5 +1,5 @@
 use crate::{fps_movement::FPSMovement, AnimationEntityLink, EnemyAnimations};
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 #[derive(Component)]
