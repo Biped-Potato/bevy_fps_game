@@ -1,5 +1,4 @@
 use bevy::{
-    animation::animation_player,
     core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
     prelude::*,
     render::view::NoFrustumCulling,
@@ -31,6 +30,7 @@ fn main() {
         .add_system(gun_control::update_gun_control.after(fps_camera::move_camera))
         .add_system(bloom::update_bloom_settings)
         .add_system(fps_shooting::update_shots)
+        .add_system(fps_shooting::play_gun_animations)
         .add_system(lock_cursor::lock_cursor_position)
         .add_system(fps_shooting::update_targets)
         .add_system(bullet_tracer::update_tracers)

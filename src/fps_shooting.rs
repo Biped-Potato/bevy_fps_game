@@ -18,7 +18,36 @@ pub struct ShootableTarget {
     pub health: f32,
     pub max_health: f32,
 }
-
+pub fn play_gun_animations(
+    buttons: Res<Input<MouseButton>>,
+    mut player_query: Query<&mut AnimationPlayer>,
+    animations: Res<Animations>,
+    mut gun_query: Query<
+    (&mut GunController, &mut Transform, &AnimationEntityLink),
+    (Without<FPSCamera>, Without<ShootableTarget>)>,)
+{
+    for (mut gun_controller, mut gun_transform, animation_entity) in gun_query.iter_mut() {
+        
+        if let Ok(mut player) = player_query.get_mut(animation_entity.0) 
+        {
+            if gun_controller.reloading_timer >= 0. {
+                player.play(animations.0[1].clone_weak());
+            } 
+            else 
+            {
+                if gun_controller.time_since_last_shot >= 0.2 {
+                    player.play(animations.0[0].clone_weak()).repeat();
+                }
+                if buttons.pressed(MouseButton::Left) {
+                    if gun_controller.timer <= 0. {
+                        player.play(animations.0[0].clone_weak());
+                        player.play(animations.0[2].clone_weak());
+                    }
+                }
+            }
+        }
+    }
+}
 pub fn update_shots(
     mut player_query: Query<&mut AnimationPlayer>,
     animations: Res<Animations>,
@@ -26,8 +55,8 @@ pub fn update_shots(
         (&mut GunController, &mut Transform, &AnimationEntityLink),
         (Without<FPSCamera>, Without<ShootableTarget>),
     >,
-    transform_query: Query<
-        (&Transform),
+    _transform_query: Query<
+        &Transform,
         (
             Without<GunController>,
             Without<ShootableTarget>,
@@ -58,19 +87,10 @@ pub fn update_shots(
         }
         gun_controller.timer -= time.delta_seconds();
         gun_controller.time_since_last_shot += time.delta_seconds();
-
-        if let Ok(mut player) = player_query.get_mut(animation_entity.0) {
             gun_controller.reloading_timer -= time.delta_seconds();
-            if gun_controller.reloading_timer >= 0. {
-                player.play(animations.0[1].clone_weak());
-            } else {
-                if gun_controller.time_since_last_shot >= 0.2 {
-                    player.play(animations.0[0].clone_weak()).repeat();
-                }
+            if gun_controller.reloading_timer < 0.{
                 if buttons.pressed(MouseButton::Left) {
                     if gun_controller.timer <= 0. {
-                        player.play(animations.0[0].clone_weak());
-                        player.play(animations.0[2].clone_weak());
                         gun_controller.bullets -= 1;
                         if gun_controller.bullets <= 0 {
                             gun_controller.bullets = gun_controller.magazine_size;
@@ -292,7 +312,7 @@ pub fn update_shots(
                                     //println!("{} {}",offseted_normal,hole_transform.rotation);
                                     // textured quad - normal
 
-                                    let hole_entity_front = commands
+                                    let _hole_entity_front = commands
                                         .spawn(PbrBundle {
                                             mesh: quad_handle.clone(),
                                             material: material_handle_front,
@@ -301,7 +321,7 @@ pub fn update_shots(
                                         })
                                         .insert(NotShadowCaster)
                                         .id();
-                                    let hole_entity_back = commands
+                                    let _hole_entity_back = commands
                                         .spawn(PbrBundle {
                                             mesh: quad_handle.clone(),
                                             material: material_handle_back,
@@ -323,7 +343,6 @@ pub fn update_shots(
                     }
                     gun_controller.shoot = true;
                 }
-            }
         }
     }
 }
