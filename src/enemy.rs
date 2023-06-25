@@ -1,5 +1,5 @@
 use crate::{fps_movement::FPSMovement, AnimationEntityLink, EnemyAnimations};
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::NoFrustumCulling};
 use bevy_rapier3d::prelude::*;
 
 #[derive(Component)]
@@ -50,7 +50,17 @@ pub fn rotate_to_player(
                         for i in 0..child_of_child_of_child.len() {
                             if let Ok(name) = name_query.get(child_of_child_of_child[i]) {
                                 //println!("{} {}",child_of_child_of_child.len(),name.as_str());
-                                if name.as_str() == "Rear" {
+                                if name.as_str() == "Cube"
+                                {
+                                    commands.entity(child_of_child_of_child[i]).insert(NoFrustumCulling);
+                                    if let Ok(cube_children) = get_child_query.get(child_of_child_of_child[i]) {
+                                        for k in 0..cube_children.len()
+                                        {
+                                           commands.entity(cube_children[k]).insert(NoFrustumCulling);
+                                        }
+                                    }
+                                }
+                                else if name.as_str() == "Rear" {
                                     let collider_entity_body = commands
                                     .spawn(Collider::cuboid(0.5, 1.225, 0.5))
                                     .insert(TransformBundle {
