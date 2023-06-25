@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicBool;
+
 use bevy::{
     core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
     prelude::*,
@@ -26,6 +28,7 @@ fn main() {
             state: false,
             allow_lock: true,
         })
+        
         .add_system(fps_movement::player_movement)
         .add_system(fps_camera::move_camera.after(fps_movement::player_movement))
         .add_system(gun_control::update_gun_control.after(fps_camera::move_camera))
@@ -47,20 +50,53 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         position: WindowPosition::Centered(MonitorSelection::Primary),
-                        resolution: WindowResolution::new(1280., 720.),
-                        mode: WindowMode::Windowed,
+                        resolution: WindowResolution::new(1920., 1080.),
+                        mode: WindowMode::BorderlessFullscreen,
                         ..default()
                     }),
                     ..default()
                 }),
         )
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+
+        .add_system(check_assets_ready)
+        .init_resource::<AssetsLoading>()
+
         .add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(WorldInspectorPlugin::default())
         .add_startup_system(setup)
         .add_startup_system(setup_ui)
+        
         .add_startup_system(setup_physics)
         .run();
+}
+
+#[derive(Resource,Default)]
+pub struct AssetsLoading(Vec<HandleUntyped>);
+
+fn check_assets_ready(
+    commands: Commands,
+    server: Res<AssetServer>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<StandardMaterial>>,
+    loading: Res<AssetsLoading>,
+) {
+    use bevy::asset::LoadState;
+    static SETUP_PHYSICS_CALLED: AtomicBool = AtomicBool::new(false);
+    match server.get_group_load_state(loading.0.iter().map(|h| h.id())) {
+        LoadState::Failed => {
+            // one of our assets had an error
+        }
+        LoadState::Loaded => {
+            if !SETUP_PHYSICS_CALLED.load(std::sync::atomic::Ordering::Relaxed) {
+                setup_map(commands, server, meshes, materials);
+                SETUP_PHYSICS_CALLED.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+        _ => {
+            // NotLoaded/Loading: not fully ready yet
+        }
+    }
 }
 #[derive(Component)]
 pub struct AnimationEntityLink(pub Entity);
@@ -97,12 +133,39 @@ pub fn link_animations(
         }
     }
 }
+fn setup_map(mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,)
+{
+    let x_shape: Handle<Mesh> = asset_server.load("map.glb#Mesh0/Primitive0");
+
+    let m = &meshes.get(&x_shape);
+    
+    let x_shape = Collider::from_bevy_mesh(m.unwrap(), &ComputedColliderShape::TriMesh).unwrap();
+    if Collider::from_bevy_mesh(m.unwrap(), &ComputedColliderShape::TriMesh).is_none()
+    {
+        println!("{}","the mesh failed to load");
+    }
+    //println!("{}",x_shape);
+    commands.spawn((
+        SceneBundle {
+            transform: Transform::from_xyz(0., 0., 0.),
+            scene: asset_server.load("map.glb#Scene0"),
+            ..default()
+        },
+
+    )).insert(x_shape);
+}
 fn setup_physics(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut loading: ResMut<AssetsLoading>
 ) {
+    let x_shape: Handle<Mesh> = asset_server.load("map.glb#Mesh0/Primitive0");
+    loading.0.push(x_shape.clone_untyped());
     /*
      * Ground
      */
@@ -142,6 +205,8 @@ fn setup_physics(
         RigidBody::Fixed,
         Collider::cuboid(0.5, 0.5, 0.5),
     ));
+
+    
     /*
     commands
     .spawn(SpatialBundle {
@@ -401,7 +466,37 @@ pub fn setup(
         },
         NoFrustumCulling,
     ));
+    person_transform.translation +=Vec3::new(2.,0.,0.);
+    commands.spawn((
+        SceneBundle {
+            transform: person_transform,
+            scene: asset_server.load("person.glb#Scene0"),
+            ..default()
+        },
+        enemy::Enemy {
+            health:100.,
+            shoot_timer: 3.,
+            shoot_cooldown: 3.,
+            added_colliders: false,
+        },
+        NoFrustumCulling,
+    ));
+    person_transform.translation +=Vec3::new(2.,0.,0.);
 
+    commands.spawn((
+        SceneBundle {
+            transform: person_transform,
+            scene: asset_server.load("person.glb#Scene0"),
+            ..default()
+        },
+        enemy::Enemy {
+            health:100.,
+            shoot_timer: 3.,
+            shoot_cooldown: 3.,
+            added_colliders: false,
+        },
+        NoFrustumCulling,
+    ));
     let _rng = rand::thread_rng();
     /*
     let mut pos_vec = Vec::new();
