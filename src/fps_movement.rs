@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::fps_camera::FPSCamera;
+use crate::{fps_camera::FPSCamera, MapStatus};
 #[derive(Component)]
 pub struct FPSMovement {
     pub acceleration: f32,
@@ -10,6 +10,7 @@ pub struct FPSMovement {
 }
 
 pub fn player_movement(
+    map_status : Res<MapStatus>,
     time: Res<Time>,
     rapier_context: Res<RapierContext>,
     mut movement_query: Query<(
@@ -91,6 +92,11 @@ pub fn player_movement(
 
         velocity.linvel.x *= multiplier;
         velocity.linvel.z *= multiplier;
+
+        if map_status.loaded == false
+        {
+            velocity.linvel.y = 0.;
+        }
         //velocity.linvel.x = f32::clamp(velocity.linvel.x,-movement.speed,movement.speed);
         //velocity.linvel.z = f32::clamp(velocity.linvel.z,-movement.speed,movement.speed);
     }
