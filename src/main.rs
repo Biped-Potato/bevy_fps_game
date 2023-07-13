@@ -3,13 +3,13 @@ use std::sync::atomic::AtomicBool;
 use bevy::{
     core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
     prelude::*,
-    render::view::NoFrustumCulling,
+    render::{view::NoFrustumCulling, render_resource::Face},
     window::{PrimaryWindow, WindowMode, WindowResolution},
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 
-
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 pub mod bloom;
 pub mod bullet_tracer;
 pub mod enemy;
@@ -28,13 +28,13 @@ fn main() {
             state: false,
             allow_lock: true,
         })
-        
+        .insert_resource(MapStatus{loaded : false})
         .add_system(fps_movement::player_movement)
         .add_system(fps_camera::move_camera.after(fps_movement::player_movement))
         .add_system(gun_control::update_gun_control.after(fps_camera::move_camera))
         .add_system(bloom::update_bloom_settings)
-        .add_system(fps_shooting::update_shots.after(fps_shooting::update_bullet_params))
-        .add_system(fps_shooting::update_bullet_params.before(fps_shooting::update_shots))
+        .add_system(fps_shooting::update_shots)
+        .add_system(fps_shooting::update_bullet_params.after(fps_shooting::update_shots))
         .add_system(fps_shooting::play_gun_animations.after(fps_shooting::update_shots))
         .add_system(fps_shooting::update_targets)
         .add_system(lock_cursor::lock_cursor_position)
@@ -58,12 +58,16 @@ fn main() {
                 }),
         )
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-
         .add_system(check_assets_ready)
         .init_resource::<AssetsLoading>()
-
-        .add_plugin(RapierDebugRenderPlugin::default())
-        .add_plugin(WorldInspectorPlugin::default())
+        /*
+        .add_plugin(RapierDebugRenderPlugin {
+            always_on_top: true,
+            ..default()
+             })
+         */
+        
+        //.add_plugin(WorldInspectorPlugin::default())
         .add_startup_system(setup)
         .add_startup_system(setup_ui)
         
@@ -75,6 +79,7 @@ fn main() {
 pub struct AssetsLoading(Vec<HandleUntyped>);
 
 fn check_assets_ready(
+    mut map_status : ResMut<MapStatus>,
     commands: Commands,
     server: Res<AssetServer>,
     meshes: ResMut<Assets<Mesh>>,
@@ -89,7 +94,7 @@ fn check_assets_ready(
         }
         LoadState::Loaded => {
             if !SETUP_PHYSICS_CALLED.load(std::sync::atomic::Ordering::Relaxed) {
-                setup_map(commands, server, meshes, materials);
+                setup_map(commands, map_status,server, meshes, materials);
                 SETUP_PHYSICS_CALLED.store(true, std::sync::atomic::Ordering::Relaxed);
             }
         }
@@ -97,6 +102,11 @@ fn check_assets_ready(
             // NotLoaded/Loading: not fully ready yet
         }
     }
+}
+#[derive(Resource)]
+pub struct MapStatus
+{
+    pub loaded : bool,
 }
 #[derive(Component)]
 pub struct AnimationEntityLink(pub Entity);
@@ -134,28 +144,126 @@ pub fn link_animations(
     }
 }
 fn setup_map(mut commands: Commands,
+    mut map_status : ResMut<MapStatus>,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,)
 {
-    let x_shape: Handle<Mesh> = asset_server.load("map.glb#Mesh0/Primitive0");
+    let mesh_handle: Handle<Mesh> = asset_server.load("map.glb#Mesh0/Primitive0");
 
-    let m = &meshes.get(&x_shape);
+    let m = meshes.get(&mesh_handle);
+    let mut map_mesh = m.unwrap().clone();
+    Mesh::generate_tangents(&mut map_mesh);
+
     
     let x_shape = Collider::from_bevy_mesh(m.unwrap(), &ComputedColliderShape::TriMesh).unwrap();
     if Collider::from_bevy_mesh(m.unwrap(), &ComputedColliderShape::TriMesh).is_none()
     {
         println!("{}","the mesh failed to load");
     }
+    let texture_handle = asset_server.load("sand.png");
+    let normal_handle = asset_server.load("normal_map.png");
+    let wall_mat = materials.add(StandardMaterial {
+        normal_map_texture : Some(normal_handle.clone()),
+        base_color: Color::WHITE,
+        perceptual_roughness :0.5,
+        base_color_texture: Some(texture_handle.clone()),
+        cull_mode: None,
+        unlit: false,
+        ..default()
+    });
+    let mut light_vec = Vec::new();
+    light_vec.push(Vec3::new(1.,0.,2.));
+    light_vec.push(Vec3::new(37.,-7.,3.));
+    light_vec.push(Vec3::new(37.,2.,3.));
+    light_vec.push(Vec3::new(10.,-7.,3.));
+    light_vec.push(Vec3::new(10.,2.,3.));
+    light_vec.push(Vec3::new(37.,-2.,3.));
+
+    light_vec.push(Vec3::new(36.,-11.,3.));
+    light_vec.push(Vec3::new(28.,-20.,1.));
+    light_vec.push(Vec3::new(11.,13.,4.));
+    light_vec.push(Vec3::new(30.,-42.,6.));
+    for i in 0..light_vec.len()
+    {
+        commands
+        .spawn(PointLightBundle {
+            // transform: Transform::from_xyz(5.0, 8.0, 2.0),
+            transform: Transform::from_xyz(light_vec[i].x,light_vec[i].z,-light_vec[i].y),
+            point_light: PointLight {
+                intensity: 100.0, // lumens - roughly a 100W non-halogen incandescent bulb
+                color: Color::WHITE,
+                radius : 1000000000.,
+                shadows_enabled: true,
+                ..default()
+            },
+            ..default()
+        });
+    }
+    let mut enemy_vec = Vec::new();
+    enemy_vec.push(Vec3::new(38.,3.,0.02));
+    enemy_vec.push(Vec3::new(0.,3.,0.));
+    
+    enemy_vec.push(Vec3::new(10.,3.,0.02));
+    enemy_vec.push(Vec3::new(0.,0.,0.));
+
+    enemy_vec.push(Vec3::new(10.,13.,0.02));
+    enemy_vec.push(Vec3::new(0.,1.,0.));
+
+    enemy_vec.push(Vec3::new(42.,-14.,0.02));
+    enemy_vec.push(Vec3::new(0.,3.,0.));
+
+    enemy_vec.push(Vec3::new(30.,-42.,4.));
+    enemy_vec.push(Vec3::new(0.,2.,0.));
+
+    enemy_vec.push(Vec3::new(37.,13.,0.02));
+    enemy_vec.push(Vec3::new(0.,0.,0.));
+
+    enemy_vec.push(Vec3::new(9.,-11.,0.02));
+    enemy_vec.push(Vec3::new(0.,3.,0.));
+
+    enemy_vec.push(Vec3::new(12.,-25.,0.02));
+    enemy_vec.push(Vec3::new(0.,2.,0.));
+    
+    
+
+    for i in 0..enemy_vec.len()/2
+    {
+        let mut person_transform = Transform::from_xyz(enemy_vec[(2*i)].x,enemy_vec[(2*i)].z,-enemy_vec[(2*i)].y);
+        person_transform.scale = Vec3::new(2.5, 2.5, 2.5);
+        person_transform.rotate_y(1.5708*enemy_vec[(2*i)+1].y);
+
+        println!("{}",enemy_vec[(2*i)+1].y);
+        commands.spawn((
+            SceneBundle {
+                transform: person_transform,
+                scene: asset_server.load("person.glb#Scene0"),
+                ..default()
+            },
+            enemy::Enemy {
+                respawned : true,
+                respawn_timer : 0.,
+                health:100.,
+                shoot_timer: 3.,
+                shoot_cooldown: 3.,
+                added_colliders: false,
+            },
+            NoFrustumCulling,
+        ));
+    }
+
     //println!("{}",x_shape);
     commands.spawn((
-        SceneBundle {
-            transform: Transform::from_xyz(0., 0., 0.),
-            scene: asset_server.load("map.glb#Scene0"),
+        PbrBundle {
+            transform: Transform::from_xyz(0.,0., 0.).with_scale(Vec3::new(50.,50.,50.)),
+            mesh : meshes.add(map_mesh), 
+            material : wall_mat,
+            //scene: asset_server.load("map.glb#Scene0"),
             ..default()
         },
 
     )).insert(x_shape);
+    map_status.loaded = true;
 }
 fn setup_physics(
     asset_server: Res<AssetServer>,
@@ -166,67 +274,6 @@ fn setup_physics(
 ) {
     let x_shape: Handle<Mesh> = asset_server.load("map.glb#Mesh0/Primitive0");
     loading.0.push(x_shape.clone_untyped());
-    /*
-     * Ground
-     */
-    let ground_size = 200.1;
-    let ground_height = 0.1;
-
-    let texture_handle = asset_server.load("sand.png");
-
-    let wall_mat = materials.add(StandardMaterial {
-        base_color: Color::WHITE,
-        base_color_texture: Some(texture_handle.clone()),
-        unlit: true,
-        ..default()
-    });
-    commands.spawn((
-        PbrBundle {
-            transform: Transform::from_xyz(0.0, -ground_height, 0.0).with_scale(Vec3::new(
-                ground_size,
-                ground_height,
-                ground_size,
-            )),
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: wall_mat.clone(),
-            ..default()
-        },
-        RigidBody::Fixed,
-        Collider::cuboid(ground_size, ground_height, ground_size),
-    ));
-
-    commands.spawn((
-        PbrBundle {
-            transform: Transform::from_xyz(0.0, 0., -5.0).with_scale(Vec3::new(30., 15., 1.)),
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: wall_mat.clone(),
-            ..default()
-        },
-        RigidBody::Fixed,
-        Collider::cuboid(0.5, 0.5, 0.5),
-    ));
-
-    
-    /*
-    commands
-    .spawn(SpatialBundle {
-        transform: Transform::from_xyz(0., 0., 0.),
-        ..default()
-    },)
-    //.spawn(TransformBundle::from(Transform::from_rotation(Quat::from_rotation_x(0.2),)))
-    .with_children(|child| {
-        child.spawn((
-            PbrBundle {
-                transform: Transform::from_xyz(0., 5., 0.),
-                mesh: meshes.add(Mesh::from(shape::Cube { size: 1. })),
-                material: materials.add(Color::rgb(1., 1., 1.).into()),
-                ..default()
-            },
-            RigidBody::Dynamic,
-            Collider::cuboid(0.5, 0.5, 0.5),
-        ));
-    });
-    */
 }
 pub fn setup_ui(
     asset_server: Res<AssetServer>,
@@ -307,8 +354,6 @@ pub struct EnemyAnimations(Vec<Handle<AnimationClip>>);
 pub fn setup(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
-    _meshes: ResMut<Assets<Mesh>>,
-    _materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(Animations(vec![
         asset_server.load("gun.glb#Animation0"),
@@ -324,19 +369,8 @@ pub fn setup(
     // ambient light
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 0.5,
+        brightness: 0.3,
     });
-    // light
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1500.0,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, 10.0, 0.0),
-        ..default()
-    });
-
     commands
         .spawn(SpatialBundle {
             visibility: Visibility::Visible,
@@ -357,7 +391,7 @@ pub fn setup(
                         fov: (103.0 / 360.0) * (std::f32::consts::PI * 2.0),
                         ..Default::default()
                     }),
-                    transform: Transform::from_xyz(0.0, 0.0, 4.0),
+                    transform: Transform::from_xyz(0.0, 1.0, 4.0),
 
                     ..default()
                 },
@@ -450,6 +484,7 @@ pub fn setup(
             offset: Vec3::new(0., 0., 0.),
         },
     ));
+    /*
     let mut person_transform = Transform::from_xyz(0., 0., 0.);
     person_transform.scale = Vec3::new(2.5, 2.5, 2.5);
     commands.spawn((
@@ -466,37 +501,9 @@ pub fn setup(
         },
         NoFrustumCulling,
     ));
-    person_transform.translation +=Vec3::new(2.,0.,0.);
-    commands.spawn((
-        SceneBundle {
-            transform: person_transform,
-            scene: asset_server.load("person.glb#Scene0"),
-            ..default()
-        },
-        enemy::Enemy {
-            health:100.,
-            shoot_timer: 3.,
-            shoot_cooldown: 3.,
-            added_colliders: false,
-        },
-        NoFrustumCulling,
-    ));
-    person_transform.translation +=Vec3::new(2.,0.,0.);
-
-    commands.spawn((
-        SceneBundle {
-            transform: person_transform,
-            scene: asset_server.load("person.glb#Scene0"),
-            ..default()
-        },
-        enemy::Enemy {
-            health:100.,
-            shoot_timer: 3.,
-            shoot_cooldown: 3.,
-            added_colliders: false,
-        },
-        NoFrustumCulling,
-    ));
+    
+     */
+    
     let _rng = rand::thread_rng();
     /*
     let mut pos_vec = Vec::new();

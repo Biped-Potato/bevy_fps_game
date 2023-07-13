@@ -143,32 +143,50 @@ pub fn update_shots(
                     let ray_direction;
                     let spray_rand_movement_added =
                         gun_controller.spray_rand + gun_controller.movement_inaccuracy;
-                    if gun_controller.spray_index > 3 {
+                    if gun_controller.spray_index > 4 {
                         ray_direction = (camera_transform_non_corrupted.forward()
                             + (camera_transform_non_corrupted.up()
                                 * (rng.gen_range(
                                     -spray_rand_movement_added..spray_rand_movement_added,
-                                ) + gun_controller.spray_pattern[gun_controller.spray_index]
+                                ) + gun_controller.spray_pattern[gun_controller.spray_index-1]
                                     .y))
                             + (camera_transform_non_corrupted.right()
                                 * (rng.gen_range(
                                     -spray_rand_movement_added..spray_rand_movement_added,
-                                ) + gun_controller.spray_pattern[gun_controller.spray_index]
+                                ) + gun_controller.spray_pattern[gun_controller.spray_index-1]
                                     .x)))
                             .normalize();
-                    } else {
+                    }
+                    else if gun_controller.spray_index == 1
+                    {
+                        ray_direction = (camera_transform_non_corrupted.forward()
+                            + (camera_transform_non_corrupted.up()
+                                * (rng.gen_range(
+                                    -gun_controller.spray_rand / 200.0
+                                        ..gun_controller.spray_rand /200.0,
+                                ) + gun_controller.spray_pattern[gun_controller.spray_index-1]
+                                    .y))
+                            + (camera_transform_non_corrupted.right()
+                                * (rng.gen_range(
+                                    -spray_rand_movement_added / 24.0
+                                        ..spray_rand_movement_added / 24.0,
+                                ) + gun_controller.spray_pattern[gun_controller.spray_index-1]
+                                    .x)))
+                            .normalize();
+                    } 
+                    else {
                         ray_direction = (camera_transform_non_corrupted.forward()
                             + (camera_transform_non_corrupted.up()
                                 * (rng.gen_range(
                                     -gun_controller.spray_rand / 3.0
                                         ..gun_controller.spray_rand / 3.0,
-                                ) + gun_controller.spray_pattern[gun_controller.spray_index]
+                                ) + gun_controller.spray_pattern[gun_controller.spray_index-1]
                                     .y))
                             + (camera_transform_non_corrupted.right()
                                 * (rng.gen_range(
                                     -spray_rand_movement_added / 3.0
                                         ..spray_rand_movement_added / 3.0,
-                                ) + gun_controller.spray_pattern[gun_controller.spray_index]
+                                ) + gun_controller.spray_pattern[gun_controller.spray_index-1]
                                     .x)))
                             .normalize();
                     }
@@ -282,22 +300,12 @@ pub fn update_shots(
                             ))));
 
                             // this material renders the texture normally
-                            let material_handle_front = materials.add(StandardMaterial {
+                            let material_handle = materials.add(StandardMaterial {
                                 base_color: Color::rgba(1., 1., 1., 1.),
                                 base_color_texture: Some(texture_handle.clone()),
                                 alpha_mode: AlphaMode::Blend,
 
-                                cull_mode: Some(Face::Front),
-                                unlit: true,
-                                ..default()
-                            });
-
-                            let material_handle_back = materials.add(StandardMaterial {
-                                base_color: Color::rgba(1., 1., 1., 1.),
-                                base_color_texture: Some(texture_handle.clone()),
-                                alpha_mode: AlphaMode::Blend,
-                                cull_mode: Some(Face::Back),
-
+                                cull_mode: None,
                                 unlit: true,
                                 ..default()
                             });
@@ -317,16 +325,7 @@ pub fn update_shots(
                             let _hole_entity_front = commands
                                 .spawn(PbrBundle {
                                     mesh: quad_handle.clone(),
-                                    material: material_handle_front,
-                                    transform: hole_transform,
-                                    ..default()
-                                })
-                                .insert(NotShadowCaster)
-                                .id();
-                            let _hole_entity_back = commands
-                                .spawn(PbrBundle {
-                                    mesh: quad_handle.clone(),
-                                    material: material_handle_back,
+                                    material: material_handle,
                                     transform: hole_transform,
                                     ..default()
                                 })

@@ -8,6 +8,8 @@ pub struct Enemy {
     pub shoot_timer: f32,
     pub shoot_cooldown: f32,
     pub health : f32,
+    pub respawn_timer : f32,
+    pub respawned : bool,
 }
 #[derive(Component)]
 pub struct HeadCollider {
@@ -31,19 +33,35 @@ pub fn rotate_to_player(
     get_child_query: Query<&Children>,
     name_query: Query<&Name>,
     _transform_query: Query<&mut Transform, Without<FPSMovement>>,
+    time : Res<Time>,
 ) {
     if let Ok((_player_transform, _movement)) = player_query.get_single() {
         for (mut enemy, entity, child, animation_entity) in enemy_query.iter_mut() {
+            enemy.respawn_timer-=time.delta_seconds();
+            
             if let Ok(mut player) = animation_player_query.get_mut(animation_entity.0) {
-                if enemy.health <=0.
+                if enemy.health <=0. && enemy.respawned
                 {
                     player.play(enemy_animations.0[1].clone_weak());
+                    enemy.respawn_timer = 10.;
+                    enemy.respawned = false;
                 }
-                else {
-                    player.play(enemy_animations.0[0].clone_weak());
+                else if enemy.respawned
+                {
+                    player.play(enemy_animations.0[0].clone_weak()).repeat();
                 }
                 
             }
+            //println!("{} {}",enemy.health,enemy.respawn_timer);
+            if enemy.health <=0. && !enemy.respawned
+            {
+                if enemy.respawn_timer <=0.
+                {
+                    enemy.health = 100.;
+                    enemy.respawned = true;
+                }
+            }
+            
             if enemy.added_colliders == false {
                 if let Ok(child_of_child) = get_child_query.get(child[0]) {
                     if let Ok(child_of_child_of_child) = get_child_query.get(child_of_child[0]) {
