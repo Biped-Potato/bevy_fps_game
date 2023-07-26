@@ -57,7 +57,7 @@ fn main() {
                     ..default()
                 }),
         )
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default().with_physics_scale(10.))
         .add_system(check_assets_ready)
         .init_resource::<AssetsLoading>()
         /*

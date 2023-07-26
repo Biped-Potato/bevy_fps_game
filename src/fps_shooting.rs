@@ -29,7 +29,6 @@ pub fn play_gun_animations(
     >,
 ) {
     for (gun_controller, _gun_transform, animation_entity) in gun_query.iter_mut() {
-        //println!("{}",gun_controller.shoot);
         if let Ok(mut player) = player_query.get_mut(animation_entity.0) {
             if gun_controller.reloading_timer >= 0. {
                 player.play(animations.0[1].clone_weak());
@@ -38,8 +37,6 @@ pub fn play_gun_animations(
                     player.play(animations.0[0].clone_weak()).repeat();
                 }
                 if gun_controller.shoot == true {
-                    //println!("{}","shoot");
-                    //gun_controller.shoot = false;
                     player.play(animations.0[0].clone_weak());
                     player.play(animations.0[2].clone_weak());
                 }
