@@ -414,7 +414,7 @@ pub fn setup(
                     rotation: Vec3::new(0., 0., 0.),
                     speed: 300.,
                     rotate_lock: 88. * 0.0174533,
-                    sensitivity: (0.173) / 900.,
+                    sensitivity: (0.35) / 900.,
                 },
                 Damping {
                     linear_damping: 4.,

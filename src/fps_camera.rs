@@ -27,9 +27,6 @@ pub fn move_camera(
 
                 camera.rotation.x =
                     f32::clamp(camera.rotation.x, -camera.rotate_lock, camera.rotate_lock);
-
-                //transform.rotation += Quat::from_axis_angle(Vec3::new(0., 1., 0.), angle);
-                //println!("{}",x_quat);
             }
             camera.recoil_shake = move_towards(
                 camera.recoil_shake,
